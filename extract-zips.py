@@ -49,11 +49,14 @@ myData['fq2'] = options.fq2
 myData['outBase'] = options.outBase
 myData['name'] = options.name
 myData['targetFA'] = options.target
+myData['leftTarget'] = 'ACGAAGACAAGATATCCTTGATCTG'
+myData['rightTarget'] = 'GCCATCGATGTGGATCTACCACACA'
 
 
 zipcodetools.set_default_prog_paths(myData)
 zipcodetools.setup_output_dir(myData)
 zipcodetools.run_flash(myData)
 zipcodetools.make_filtered_fasta(myData)
-zipcodetools.run_exonerate(myData)
+#zipcodetools.run_exonerate(myData)
+zipcodetools.get_zipcode_noindel(myData)
 
