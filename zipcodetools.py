@@ -95,13 +95,13 @@ def get_4l_record(myFile):
     return [myLine1,myLine2,myLine3,myLine4]
 #####################################################################
 def make_filtered_fasta(myData):
-    myData['flash_Frag_fasta'] = myData['flashDir'] + 'out.extendedFrags.fasta.gz'
+    myData['flash_Frag_fasta'] = myData['flashDir'] + 'out.extendedFrags.fasta'
     if os.path.isfile(myData['flash_Frag_fasta']) is True:
         print 'Looks like already ran filter fasta'
         return
         
     inFile = gzip.open(myData['flash_Frag'],'r')
-    outFile = gzip.open(myData['flash_Frag_fasta'],'w')
+    outFile = open(myData['flash_Frag_fasta'],'w')
     n = 0
     print 'Filtering fastq...'
     while True:
@@ -127,18 +127,14 @@ def make_filtered_fasta(myData):
             print '\t Did %i records...' % n
     inFile.close()
     outFile.close()
-
-
-
 #####################################################################
-
-
-
-#    record['qualString'] = record['qualString'].rstrip()    
-#    lord = ord #local function pointer for speedup    
-#    record['qualList'] = [lord(i) - qoffSet for i in record['qualString'] ]  
-#    record['qual33Str'] = ''.join([chr(i+33) for i in record['qualList']])
-
+def run_exonerate(myData):
+    myData['exonerateOutput'] = myData['outDir'] + 'exonerate.out'
+    
+    cmd = 'exonerate --showcigar yes --showalignment no --showvulgar no --model affine:global -E True %s %s > %s' % (myData['flash_Frag_fasta'], myData['targetFA'],myData['exonerateOutput'])
+    print cmd
+    runCMD(cmd)
+#####################################################################
 
 
 
