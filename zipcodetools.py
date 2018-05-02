@@ -5,6 +5,8 @@ import sys
 import os
 import gzip
 import subprocess
+import nwalign as nw
+
 
 #####################################################################
 # check to see if program is in PATH
@@ -431,4 +433,30 @@ def print_extraction_stats(myData):
     
     outFile.close()
 #####################################################################
+def read_ziptable_to_list(myData):  # read in table into list for clustering
+    myData['zipList'] = []
+    inFile = gzip.open(myData['zipTable'],'r')
+    for line in inFile:
+        line = line.rstrip()
+        line = line.split()
+        zipcode = line[0]
+        freq = float(line[2])
+        myData['zipList'].append([zipcode,freq])    
+    inFile.close()
+    print 'Read in %i zips' % len(myData['zipList'])
+    print 'Confirming sort'
+    myData['zipList'].sort(key=lambda k: k[1],reverse=True)
+
+#####################################################################
+def score_num_missmatches(seq1,seq2):
+    aln = nw.global_align(seq1,seq2)
+    numMisMatch = 0
+    for i in range(len(aln[0])):
+       if aln[0][i] != aln[1][i]:
+           numMisMatch += 1
+    return numMisMatch
+#####################################################################
+    
+
+
 
