@@ -56,7 +56,7 @@ myData['rightTarget'] = 'GCCATCGATGTGGATCTACCACACA'
 zipcodetools.set_default_prog_paths(myData)
 zipcodetools.setup_output_dir(myData)
 zipcodetools.run_flash(myData)
-zipcodetools.make_filtered_fasta(myData)
+#zipcodetools.make_filtered_fasta(myData)
 #zipcodetools.run_exonerate(myData)
 zipcodetools.get_zipcode_noindel(myData)
 

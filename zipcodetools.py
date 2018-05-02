@@ -37,7 +37,36 @@ def runCMD(cmd):
         print cmd
         sys.exit(1)
 #####################################################################
-
+##############################################################################
+# Returns complement of a bp.  If not ACGT then return same char
+def complement(c):
+    if c == 'A':
+        return 'T'
+    if c == 'T':
+        return 'A'
+    if c == 'C':
+        return 'G'
+    if c == 'G':
+        return 'C'
+    if c == 'a':
+        return 't'
+    if c == 't':
+        return 'a'
+    if c == 'c':
+        return 'g'
+    if c == 'g':
+        return 'c'
+    # If not ACTGactg simply return same character
+    return c   
+##############################################################################
+# Returns the reverse compliment of sequence 
+def revcomp(seq):
+    c = ''    
+    seq = seq[::-1] #reverse
+    # Note, this could be greatly sped up using list operations
+    seq = [complement(i) for i in seq]
+    c = ''.join(seq)
+    return c
 #####################################################################
 # setup paths to default programs to use....
 def set_default_prog_paths(myData):
@@ -136,7 +165,9 @@ def make_filtered_fasta(myData):
 #    runCMD(cmd)
 #####################################################################
 def get_zipcode_noindel(myData):
+    myData['extractionRaw'] = myData['outDir'] + 'extraction.raw.txt.gz'
     inFile = gzip.open(myData['flash_Frag'],'r')
+    outFile = gzip.open(myData['extractionRaw'],'w')
     n = 0
     print 'Filtering fastq...'
     while True:
@@ -156,8 +187,7 @@ def get_zipcode_noindel(myData):
             if qualList[i] <= 2:
                seqList[i] = 'N'
         seqStr = ''.join(seqList)
-        print name
-        print seqStr
+        seqStrRC = revcomp(seqStr)
 
         maxMatchL = 0
         maxOffsetL = 0
@@ -166,8 +196,20 @@ def get_zipcode_noindel(myData):
             if numMatches > maxMatchL:
                 maxMatchL = numMatches
                 maxOffsetL = offset
-        print 'for left',maxMatchL,maxOffsetL
 
+        maxMatchLRC = 0
+        maxOffsetLRC = 0
+        for offset in range(0,5):
+            numMatches = count_matches(seqStrRC,myData['leftTarget'],offset)
+            if numMatches > maxMatchL:
+                maxMatchLRC = numMatches
+                maxOffsetLRC = offset
+
+        if maxMatchLRC > maxMatchL:
+            maxMatchL = maxMatchLRC
+            maxOffsetL = maxOffsetLRC
+            seqStr = seqStrRC
+            
         maxMatchR = 0
         maxOffsetR = 0
         for offset in range(len(seqStr)-len(myData['rightTarget'])-5,len(seqStr)-len(myData['rightTarget'])):
@@ -175,42 +217,28 @@ def get_zipcode_noindel(myData):
             if numMatches > maxMatchR:
                 maxMatchR = numMatches
                 maxOffsetR = offset
-        print 'for right',maxMatchR,maxOffsetR
         
         
         leftPre = seqStr[0:maxOffsetL]
-        print 'leftPre',leftPre
-        leftMatch = seqStr[maxOffsetL:maxOffsetL+len(myData['leftTarget'])]
-        
-        print 'EXTRACT!'
-        print 'leftPre',leftPre
-        print 'leftMatch',leftMatch
-        
-        
-        
+        leftMatch = seqStr[maxOffsetL:maxOffsetL+len(myData['leftTarget'])]                        
+
         zipCode = seqStr[maxOffsetL+len(myData['leftTarget']):maxOffsetR]
-        print 'zipCode',zipCode
 
         rightMatch = seqStr[maxOffsetR:maxOffsetR+len(myData['rightTarget'])]
         rightPost = seqStr[maxOffsetR+len(myData['rightTarget']):]
         
-
-        
-        print 'rightMatch',rightMatch
-        print 'rightPost',rightPost
-
-
         extractionResult = [leftPre,str(maxMatchL),zipCode,str(maxMatchR),rightPost]
-        extractionResult = ':'.join(extractionResult)
-        print extractionResult
+        extractionResult = ':'.join(extractionResult) + '\n'
+        outFile.write(extractionResult)
         
-        break
+        
 
         n += 1
         if n % 50000 == 0:
             print '\t Did %i records...' % n
             
     inFile.close()
+    outFile.close()
 
 #####################################################################    
 def count_matches(seq1,seq2,seq2offset):  #offset is where in seq1 seq2 starts
