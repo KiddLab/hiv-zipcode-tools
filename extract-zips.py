@@ -22,7 +22,6 @@ parser.add_option('--fq1',dest='fq1', help = 'fq.gz for read 1')
 parser.add_option('--fq2',dest='fq2', help = 'fq.gz for read 2')
 parser.add_option('--outbase',dest='outBase', help = 'base dir for output')
 parser.add_option('--name',dest='name', help = 'name for this sample')
-parser.add_option('--target',dest='target', help = 'target region to align, flanking zipcode')
 
 
 (options, args) = parser.parse_args()
@@ -35,8 +34,6 @@ if options.outBase is None:
     parser.error('output base dir not given')
 if options.name is None:
     parser.error('name not given')
-if options.target is None:
-    parser.error('target fasta not given')
 
 
 ###############################################################################
@@ -48,15 +45,23 @@ myData['fq1'] = options.fq1
 myData['fq2'] = options.fq2
 myData['outBase'] = options.outBase
 myData['name'] = options.name
-myData['targetFA'] = options.target
 myData['leftTarget'] = 'ACGAAGACAAGATATCCTTGATCTG'
 myData['rightTarget'] = 'GCCATCGATGTGGATCTACCACACA'
 
+myData['minLeftMatch'] = len(myData['leftTarget']) - 1
+myData['minRightMatch'] = len(myData['rightTarget']) - 1
+myData['minZipLen'] =  20 - 3
+myData['maxZipLen'] =  20 + 3
 
 zipcodetools.set_default_prog_paths(myData)
 zipcodetools.setup_output_dir(myData)
 zipcodetools.run_flash(myData)
-#zipcodetools.make_filtered_fasta(myData)
-#zipcodetools.run_exonerate(myData)
+zipcodetools.read_flash_stats(myData)
+
 zipcodetools.get_zipcode_noindel(myData)
+zipcodetools.count_extracted_zips(myData)
+zipcodetools.print_extraction_stats(myData)
+
+print 'Stats output to file:',myData['extractStatsFile']
+print 'Set of zipcodes output to',myData['zipTable']
 

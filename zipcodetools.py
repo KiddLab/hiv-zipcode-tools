@@ -102,6 +102,11 @@ def run_flash(myData):
     myData['flash_Frag'] = myData['flashDir'] + 'out.extendedFrags.fastq.gz'
     myData['flash_stats'] =  myData['flashDir'] + 'flashStats.log'
     
+    if os.path.isdir(myData['flashDir']) is False:  # dir needs to exist at start for tee to work
+        print 'making flash output dir!'
+        cmd = 'mkdir ' + myData['flashDir']
+        runCMD(cmd)
+    
     if os.path.isfile(myData['flash_1']) is False:
         cmd = 'flash'  +' -r 75 -f 70 -s 2 --cap-mismatch-quals -z -t 1 ' + ' %s %s -d %s | tee %s' % (myData['fq1'],myData['fq2'],myData['flashDir'],myData['flash_stats'])
         print cmd
@@ -109,6 +114,27 @@ def run_flash(myData):
     else:
         print 'looks like flash already ran!'
 #####################################################################
+def read_flash_stats(myData):  # read in data from file
+    inFile = open(myData['flash_stats'],'r')
+    lines = inFile.readlines()
+    inFile.close()
+    lines = lines[-10:]
+    lines = [i.rstrip() for i in lines]
+    
+    if 'combination' not in lines[0]:
+        print 'error -- log file for flash not formatted as expected!'
+        for i,j in enumerate(lines):
+            print i,j
+        sys.exit()
+        
+    myData['flashInfo'] = {}
+    myData['flashInfo']['totalpairs'] = int(lines[1].split()[-1])
+    myData['flashInfo']['combinedpairs'] = int(lines[2].split()[-1])
+    myData['flashInfo']['uncombinedpairs'] = int(lines[3].split()[-1])
+    myData['flashInfo']['fraccombined'] = float(myData['flashInfo']['combinedpairs']) / float(myData['flashInfo']['totalpairs'])            
+#####################################################################
+
+
 #####################################################################
 # to read in fastq like record
 def get_4l_record(myFile):
@@ -166,6 +192,10 @@ def make_filtered_fasta(myData):
 #####################################################################
 def get_zipcode_noindel(myData):
     myData['extractionRaw'] = myData['outDir'] + 'extraction.raw.txt.gz'
+    if os.path.isfile(myData['extractionRaw']) is True:
+        print 'Looks like already ran extraction raw'
+        return
+        
     inFile = gzip.open(myData['flash_Frag'],'r')
     outFile = gzip.open(myData['extractionRaw'],'w')
     n = 0
@@ -239,7 +269,6 @@ def get_zipcode_noindel(myData):
             
     inFile.close()
     outFile.close()
-
 #####################################################################    
 def count_matches(seq1,seq2,seq2offset):  #offset is where in seq1 seq2 starts
     # assumes seq2 is shorter
@@ -254,6 +283,152 @@ def count_matches(seq1,seq2,seq2offset):  #offset is where in seq1 seq2 starts
             numMismatches += 1
     return numMatches
 #####################################################################
+def count_extracted_zips(myData):
+    myData['zipTable'] = myData['outDir'] + 'extraction.ziptable.gz'
+
+    
+    inFile = gzip.open(myData['extractionRaw'],'r')
+    
+    myData['countsInfo'] = {}
+    myData['countsInfo']['failMinLeft'] = 0
+    myData['countsInfo']['failMinRight'] = 0    
+    myData['countsInfo']['failMinZip'] = 0    
+    myData['countsInfo']['failMaxZip'] = 0    
+    myData['countsInfo']['zipHasN'] = 0        
+    
+    myData['countsInfo']['PassZip'] = 0    
+
+    myData['countsInfo']['zipLens'] = {}
+    for i in range(myData['minZipLen'],myData['maxZipLen'] +1 ):
+        myData['countsInfo']['zipLens'][i] = [0,0.0]   #num zipcodes, percent of reads
+        
 
 
+
+    zipCodes = {}
+    endsPass = {}
+    
+    for line in inFile:
+        line = line.rstrip()
+        line = line.split(':')
+        leftBC = line[0]
+        matchLeft = int(line[1])
+        zipCode = line[2]
+        matchRight = int(line[3])
+        rightBC = line[4]
+        
+        failReasons = 0
+        if matchLeft < myData['minLeftMatch']:
+            failReasons += 1
+            myData['countsInfo']['failMinLeft'] += 1
+        if matchRight < myData['minRightMatch']:
+            failReasons += 1
+            myData['countsInfo']['failMinRight'] += 1
+
+        if len(zipCode) < myData['minZipLen']:
+            failReasons += 1
+            myData['countsInfo']['failMinZip'] += 1
+
+        if len(zipCode) > myData['maxZipLen']:
+            failReasons += 1
+            myData['countsInfo']['failMaxZip'] += 1
+            
+        if 'N' in zipCode:
+            failReasons += 1
+            myData['countsInfo']['zipHasN'] += 1
+            
+            
+            
+        if failReasons == 0:
+            myData['countsInfo']['PassZip'] += 1
+            if zipCode not in zipCodes:
+                zipCodes[zipCode] = 0
+            zipCodes[zipCode] += 1
+            
+            # check the keys for the ends...
+            k = leftBC + '-' + rightBC
+            if k not in endsPass:
+                endsPass[k] = 0
+            endsPass[k] += 1
+            
+            
+    inFile.close()
+    
+    print 'Number of unique zipcodes:',len(zipCodes)
+    print 'Number of unique flanking primer tails for pass set:',len(endsPass)
+    
+    outFile = gzip.open(myData['zipTable'] ,'w')
+    print 'Sorting....',
+    zipK = zipCodes.keys()
+    zipK.sort(key=lambda k: zipCodes[k],reverse=True)
+    print 'Done'
+    
+    totalDepth = 0
+    for k in zipK:
+        totalDepth += zipCodes[k]
+    print 'Total depth for assigned zipcodes is',totalDepth
+
+    # get top 10 flanks
+    primerTails  = endsPass.keys()
+    primerTails.sort(key= lambda k: endsPass[k], reverse=True)
+    myData['top10primerTails'] = []
+    for i in range(10):
+        if i >= len(primerTails):
+            break
+        k = primerTails[i]
+        reads = endsPass[k]
+        fraction = float(reads)/float(totalDepth)
+        myData['top10primerTails'].append([k,reads,fraction])
+
+
+    for k in zipK:
+        outFile.write('%s\t%i\t%.8f\n' % (k,zipCodes[k],float(zipCodes[k])/float(totalDepth)))
+        
+        myData['countsInfo']['zipLens'][len(k)][0] += 1
+        myData['countsInfo']['zipLens'][len(k)][1] += float(zipCodes[k])/float(totalDepth)        
+    outFile.close()
+#####################################################################
+def print_extraction_stats(myData):
+    myData['extractStatsFile'] = myData['outDir'] + 'extraction.stats.txt'
+    outFile = open(myData['extractStatsFile'],'w')
+    
+    outFile.write('name\t%s\n' % myData['name'])
+    outFile.write('fq1\t%s\n' % myData['fq1'])
+    outFile.write('fq2\t%s\n' % myData['fq2'])
+    outFile.write('zipregion target\t%s\t%s\n' % (myData['leftTarget'],myData['rightTarget']))
+    outFile.write('minLeftMatch\t%i\n' % myData['minLeftMatch'] )
+    outFile.write('minRightMatch\t%i\n' % myData['minRightMatch'] )
+    outFile.write('zipcode length range\t%i\t%i\n' % (myData['minZipLen'],myData['maxZipLen']))
+
+    outFile.write('\nFLASH read overlap statistics\n')
+    outFile.write('total pairs\t%i\n' % myData['flashInfo']['totalpairs'])
+    outFile.write('combined pairs\t%i\n' % myData['flashInfo']['combinedpairs'])
+    outFile.write('uncombinedpairs pairs\t%i\n' % myData['flashInfo']['uncombinedpairs'])
+    outFile.write('fraction combined\t%f\n' % myData['flashInfo']['fraccombined'])
+    
+    outFile.write('\nZipcode extraction statistics\n')
+    klist = ['failMinLeft','failMinRight','zipHasN','failMinZip','failMaxZip']
+    for k in klist:
+        outFile.write('%s\t%i\n' % (k, myData['countsInfo'][k]))
+    outFile.write('Reads with passing zipcode\t%i\n' % (myData['countsInfo']['PassZip']))
+    f = float(myData['countsInfo']['PassZip'])/ float(myData['flashInfo']['combinedpairs'])
+    outFile.write('Fraction of combined reads with passing zipcode\t%f\n' % f)
+    
+    outFile.write('\nZipcode size profile\n')
+    
+    
+    klist = myData['countsInfo']['zipLens'].keys()
+    klist.sort()
+    outFile.write('length\tnumber of zipcodes\tfraction of assigned reads\n')
+    for k in klist:
+        outFile.write('%i\t%i\t%f\n' % (k,myData['countsInfo']['zipLens'][k][0],myData['countsInfo']['zipLens'][k][1]))
+
+    
+    outFile.write('\nPrimer Tail profile\n')
+    outFile.write('sequence\tNumber of Reads\tfraction of assigned reads\n')
+    for i in myData['top10primerTails']:
+        outFile.write('%s\t%i\t%f\n' % (i[0],i[1],i[2]) )
+    
+    outFile.close()
+#####################################################################
 
