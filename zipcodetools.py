@@ -73,17 +73,10 @@ def revcomp(seq):
 # setup paths to default programs to use....
 def set_default_prog_paths(myData):
     print 'Checking for required programs\n'
-
-    
     print 'Checking flash...'
     if which('flash') is None:
         print 'flash not found in path! please fix (module load?)'
         sys.exit()
-
-#    print 'Checking exonerate...'
-#    if which('exonerate') is None:
-#        print 'exonerate not found in path! please fix (module load?)'
-#        sys.exit()
 #####################################################################
 def setup_output_dir(myData):
     if myData['outBase'][-1] != '/':
@@ -185,13 +178,6 @@ def make_filtered_fasta(myData):
     inFile.close()
     outFile.close()
 #####################################################################
-#def run_exonerate(myData):
-#    myData['exonerateOutput'] = myData['outDir'] + 'exonerate.out'
-#    
-#    cmd = 'exonerate --showcigar yes --showalignment no --showvulgar no --model affine:global -E True %s %s > %s' % (myData['flash_Frag_fasta'], myData['targetFA'],myData['exonerateOutput'])
-#    print cmd
-#    runCMD(cmd)
-#####################################################################
 def get_zipcode_noindel(myData):
     myData['extractionRaw'] = myData['outDir'] + 'extraction.raw.txt.gz'
     if os.path.isfile(myData['extractionRaw']) is True:
@@ -223,7 +209,7 @@ def get_zipcode_noindel(myData):
 
         maxMatchL = 0
         maxOffsetL = 0
-        for offset in range(0,5):
+        for offset in range(-3,5):
             numMatches = count_matches(seqStr,myData['leftTarget'],offset)
             if numMatches > maxMatchL:
                 maxMatchL = numMatches
@@ -231,7 +217,7 @@ def get_zipcode_noindel(myData):
 
         maxMatchLRC = 0
         maxOffsetLRC = 0
-        for offset in range(0,5):
+        for offset in range(-3,5):
             numMatches = count_matches(seqStrRC,myData['leftTarget'],offset)
             if numMatches > maxMatchL:
                 maxMatchLRC = numMatches
@@ -244,12 +230,23 @@ def get_zipcode_noindel(myData):
             
         maxMatchR = 0
         maxOffsetR = 0
-        for offset in range(len(seqStr)-len(myData['rightTarget'])-5,len(seqStr)-len(myData['rightTarget'])):
+        for offset in range(len(seqStr)-len(myData['rightTarget'])-5,len(seqStr)-len(myData['rightTarget'])+3):  # allow to go 2 past end...
             numMatches = count_matches(seqStr,myData['rightTarget'],offset)
             if numMatches > maxMatchR:
                 maxMatchR = numMatches
                 maxOffsetR = offset
         
+        
+        # update here to handle negative edges...
+        # modify tmp sequences to get the length right
+        ltTmp = myData['leftTarget']
+        rtTmp = myData['rightTarget']
+        
+        if maxOffsetL < 0:
+            n = abs(maxOffsetL)
+            ltTmp = ltTmp[n:]
+            maxOffsetL = 0 # chopped off
+                    
         
         leftPre = seqStr[0:maxOffsetL]
         leftMatch = seqStr[maxOffsetL:maxOffsetL+len(myData['leftTarget'])]                        
@@ -275,10 +272,17 @@ def get_zipcode_noindel(myData):
 def count_matches(seq1,seq2,seq2offset):  #offset is where in seq1 seq2 starts
     # assumes seq2 is shorter
     len2 = len(seq2)
-    s1Part = seq1[seq2offset:seq2offset+len2]    
+    if seq2offset >= 0:
+        s1Part = seq1[seq2offset:seq2offset+len2]    
+    else:
+        s1Part = seq1[0:len2]
+        n = abs(seq2offset)
+        nList = 'N' * n
+        s1Part = nList + s1Part
+        
     numMatches = 0
     numMismatches = 0
-    for i in range(len(seq2)):
+    for i in range(min(len(seq2),len(s1Part)) ):
         if s1Part[i] == seq2[i]:
             numMatches += 1
         else:
