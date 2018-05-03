@@ -9,6 +9,9 @@ USAGE = """
 python extract-zips.py  --fq1 <fq.gz file for read 1>  --fq2 <fq.gz file for read 2>
                         --outbase <base dir for output>   --name <name for sample set>
                         --target <fasta of zipcode target>
+                        --lefttarget <left target to align, default=ACGAAGACAAGATATCCTTGATCTG>
+                        --righttarget <right target to align, default=GCCATCGATGTGGATCTACCACACA>
+                        
                         
                         
 Will  extract zipcde and info into outbase/name directory
@@ -22,6 +25,10 @@ parser.add_option('--fq1',dest='fq1', help = 'fq.gz for read 1')
 parser.add_option('--fq2',dest='fq2', help = 'fq.gz for read 2')
 parser.add_option('--outbase',dest='outBase', help = 'base dir for output')
 parser.add_option('--name',dest='name', help = 'name for this sample')
+
+
+parser.add_option('--lefttarget',dest='leftTarget',default='ACGAAGACAAGATATCCTTGATCTG',help = 'region left of zip to align')
+parser.add_option('--righttarget',dest='rightTarget',default='GCCATCGATGTGGATCTACCACACA',help = 'region right of zip to align')
 
 
 (options, args) = parser.parse_args()
@@ -45,8 +52,11 @@ myData['fq1'] = options.fq1
 myData['fq2'] = options.fq2
 myData['outBase'] = options.outBase
 myData['name'] = options.name
-myData['leftTarget'] = 'ACGAAGACAAGATATCCTTGATCTG'
-myData['rightTarget'] = 'GCCATCGATGTGGATCTACCACACA'
+myData['leftTarget'] = options.leftTarget
+myData['rightTarget'] = options.rightTarget
+
+myData['leftTarget'] = myData['leftTarget'].upper()
+myData['rightTarget'] = myData['rightTarget'].upper()
 
 myData['minLeftMatch'] = len(myData['leftTarget']) - 1
 myData['minRightMatch'] = len(myData['rightTarget']) - 1

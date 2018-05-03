@@ -243,15 +243,15 @@ def get_zipcode_noindel(myData):
         rtTmp = myData['rightTarget']
         
         if maxOffsetL < 0:
-            n = abs(maxOffsetL)
-            ltTmp = ltTmp[n:]
+            abs_offset = abs(maxOffsetL)
+            ltTmp = ltTmp[abs_offset:]
             maxOffsetL = 0 # chopped off
                     
         
         leftPre = seqStr[0:maxOffsetL]
-        leftMatch = seqStr[maxOffsetL:maxOffsetL+len(myData['leftTarget'])]                        
+        leftMatch = seqStr[maxOffsetL:maxOffsetL+len(ltTmp)]                        
 
-        zipCode = seqStr[maxOffsetL+len(myData['leftTarget']):maxOffsetR]
+        zipCode = seqStr[maxOffsetL+len(ltTmp):maxOffsetR]
 
         rightMatch = seqStr[maxOffsetR:maxOffsetR+len(myData['rightTarget'])]
         rightPost = seqStr[maxOffsetR+len(myData['rightTarget']):]
