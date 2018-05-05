@@ -460,7 +460,69 @@ def score_num_missmatches(seq1,seq2):
            numMisMatch += 1
     return numMisMatch
 #####################################################################
+def select_clusters(myData):
+    inFile = open(myData['clusterTable'],'r')
+    # read in rank list
+    rankList = []
+    while True:
+        line = inFile.readline()
+        line  = line.rstrip()
+        if line == '':
+            break
+        line = line.split()
+        line[0] = int(line[0])
+        line[1] = int(line[1])
+        line[2] = float(line[2])
+        rankList.append(line)                
+    print 'Read in %i ranks' % len(rankList)
+    line = inFile.readline()
+    line = line.rstrip()
+    if line != '#Clusters':
+        print 'error -- file not formatted as expected'
+        print line
+        sys.exit()
+    familySeeds = []
+    while True:
+        line = inFile.readline()
+        if line == '':
+            break
+        line = line.rstrip()
+        line = line.split()
+        i = int(line[0])
+        zipcode = line[2].split(':')[0]
+        familySeeds.append([i,zipcode])
+    inFile.close()
+    print 'Read in %i zipcode family seeds' % len(familySeeds)
     
+    # now, go through each and try to see
+    for i in range(0,len(rankList)):
+        endI = i + myData['stepSize']  # will be inclusive
+        if endI >= len(rankList):
+            break
+        selSet = rankList[i:endI+1]
+        uniqueFamilies = {}
+        for s in selSet:
+            uniqueFamilies[s[1]] = 1
+        k = uniqueFamilies.keys()
+        n = len(k)
+        f = float(n) / (float(myData['stepSize'])+1)
+        if f < myData['cutOff']:
+            print 'found cut!',i,endI,n,f
+            print selSet
+            break
+    print 'Extracting for',i,endI
+    selSet = rankList[i:endI+1]
+    print selSet
+    finalNum = selSet[-1][1]
+    print 'finalClusterNum',finalNum
+    myData['selectedClusterList'] = []
+    for i in range(0,len(familySeeds)):
+        if familySeeds[i][0] <= finalNum:
+            myData['selectedClusterList'].append(familySeeds[i][1])
+    print 'have the %i seed zips' % len(myData['selectedClusterList'])
+
+#####################################################################
+
 
 
 
