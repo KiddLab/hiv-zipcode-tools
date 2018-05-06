@@ -89,8 +89,15 @@ inFile.close()
 
 for i in range(len(familySet)):
     outFile.write('%s\t%s\t%.8f\n' % (familySet[i][0],familySet[i][1],familySet[i][2]))
-outFile.write('NotAssigned\tNotAssigned\t%.8f\n' % noAssignment)
+
+lastN = int(familySet[-1][0])
+lastN += 1
+
+outFile.write('%i\tNotAssigned\t%.8f\n' % (lastN,noAssignment))
 outFile.close()
+
+
+
 print 'Total depth encountered: %.8f' % totPerDepth
 print 'Not assigned: %.8f' % noAssignment
 
