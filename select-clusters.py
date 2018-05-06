@@ -6,9 +6,9 @@ from optparse import OptionParser
 
 ###############################################################################
 USAGE = """
-python select-clusters.py  --clustertable <cluster table output>
-                           --stepsize <window size to consider, default = 1>
-                           --cutoff <required fraction unique in window, default = 0.90>
+python select-clusters.py  --families <file of families to consider>
+
+
 
 Clustertable is output from form-clusters-from-table.py
 
