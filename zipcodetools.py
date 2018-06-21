@@ -187,6 +187,8 @@ def get_zipcode_noindel(myData):
     inFile = gzip.open(myData['flash_Frag'],'r')
     outFile = gzip.open(myData['extractionRaw'],'w')
     n = 0
+    lord = ord #local function pointer for speedup 
+
     print 'Filtering fastq...'
     while True:
         rec = get_4l_record(inFile)
@@ -198,7 +200,6 @@ def get_zipcode_noindel(myData):
         seq = rec[1].rstrip()
         seqList = list(seq)
         qualString = rec[3].rstrip()
-        lord = ord #local function pointer for speedup 
         qualList = [lord(i) - 33 for i in qualString ]  
         
         for i in range(len(seqList)):
@@ -523,6 +524,140 @@ def select_clusters(myData):
 
 #####################################################################
 
+#####################################################################
+# Identify so that Read1 = HIV read and read2 = linker read
+# Trim off the primer sequences
+def order_integration_fq(myData):
+    myData['LTRRead1'] = myData['outDir'] + 'LTRRead1.fq.gz'
+    myData['LinkerRead2'] = myData['outDir'] + 'LinkerRead2.fq.gz'
 
 
+    myData['IntStats'] = {}
+    myData['IntStats']['totalReads'] = 0
+    myData['IntStats']['r1LTR'] = 0
+    myData['IntStats']['r2LTR'] = 0
+    myData['IntStats']['LTRmatchFail'] = 0           
+    myData['IntStats']['LinkermatchFail'] = 0 
+
+
+
+    r1In = gzip.open(myData['fq1'],'r')
+    r2In = gzip.open(myData['fq2'],'r')
+    r1Out = gzip.open(myData['LTRRead1'],'w')
+    r2Out = gzip.open(myData['LinkerRead2'],'w')
+    
+    print 'Assessing r1 and r2 of integration data...'
+    while True:
+        rec1 = get_4l_record(r1In)
+        rec2 = get_4l_record(r2In)
+        
+        if rec1 == '':
+             break
+        
+        myData['IntStats']['totalReads'] += 1
+        
+        
+        for i in range(4):
+            rec1[i] = rec1[i].rstrip()
+            rec2[i] = rec2[i].rstrip()
+
+                
+        # determine which of seq1 and seq2 has better match to the LTR primer..
+        seq1 = rec1[1]
+        seq2 = rec2[1]
+        
+        maxMatch1LTR = 0
+        maxOffset1LTR = 0
+        for offset in range(-3,5):
+            numMatches = count_matches(seq1,myData['LTRPrimer'],offset)
+            if numMatches > maxMatch1LTR:
+                maxMatch1LTR = numMatches
+                maxOffset1LTR = offset
+
+        
+        maxMatch2LTR = 0
+        maxOffset2LTR = 0
+        for offset in range(-3,5):
+            numMatches = count_matches(seq2,myData['LTRPrimer'],offset)
+            if numMatches > maxMatch2LTR:
+                maxMatch2LTR = numMatches
+                maxOffset2LTR = offset
+
+        if maxMatch1LTR > maxMatch2LTR: #seq1 = LTR
+            myData['IntStats']['r1LTR'] += 1
+            LTRRec = rec1
+            LinkerRec = rec2
+            LTRmaxMatch = maxMatch1LTR
+            LTRmaxMatchOffset = maxOffset1LTR        
+        else: #seq2 = LTR
+            myData['IntStats']['r2LTR'] += 1
+            LinkerRec = rec1
+            LTRRec = rec2
+            LTRmaxMatch = maxMatch2LTR
+            LTRmaxMatchOffset = maxOffset2LTR
+            
+            
+        # need to now do the check of linker primer
+        maxMatch2Linker = 0
+        maxOffset2Linker = 0
+        seq2 = LinkerRec[1]
+        for offset in range(-3,5):
+            numMatches = count_matches(seq2,myData['linkerPrimer'],offset)
+            if numMatches > maxMatch2Linker:
+                maxMatch2Linker = numMatches
+                maxOffset2Linker = offset
+        
+        # now do the checks of match cutoffs...
+        if LTRmaxMatch < myData['minLTRPrimerMatch']:
+            myData['IntStats']['LTRmatchFail'] += 1            
+            continue
+        if maxMatch2Linker < myData['minlinkerPrimerMatch']:
+            myData['IntStats']['LinkermatchFail'] += 1            
+            continue
+
+        
+
+        ltTmp = myData['LTRPrimer']
+        if LTRmaxMatchOffset < 0:
+            abs_offset = abs(LTRmaxMatchOffset)
+            ltTmp = ltTmp[abs_offset:]
+            LTRmaxMatchOffset = 0 # chopped off
+                    
+        
+        leftPre = LTRRec[1][0:LTRmaxMatchOffset]
+        leftMatch = LTRRec[1][LTRmaxMatchOffset:LTRmaxMatchOffset+len(ltTmp)]
+        leftRest = LTRRec[1][LTRmaxMatchOffset+len(ltTmp):]                        
+        leftRestQual = LTRRec[3][LTRmaxMatchOffset+len(ltTmp):]                        
+        
+        LTRRec[1] = leftRest
+        LTRRec[3] = leftRestQual
+        
+        
+        # now, do the r2 = linker match...
+        ltTmp = myData['linkerPrimer']
+        if maxOffset2Linker < 0:
+            abs_offset = abs(maxOffset2Linker)
+            ltTmp = ltTmp[abs_offset:]
+            maxOffset2Linker = 0 # chopped off
+                    
+        
+        leftPre = LinkerRec[1][0:maxOffset2Linker]
+        leftMatch = LinkerRec[1][maxOffset2Linker:maxOffset2Linker+len(ltTmp)]
+        leftRest = LinkerRec[1][maxOffset2Linker+len(ltTmp):]                        
+        leftRestQual = LinkerRec[3][maxOffset2Linker+len(ltTmp):]                        
+        
+        LinkerRec[1] = leftRest
+        LinkerRec[3] = leftRestQual
+                 
+        # at this point, we have LTR and LinkerRecords setup, are ready to look for
+        # zipcode extraction
+
+
+
+#        break
+    r1In.close()
+    r2In.close()
+    r1Out.close()
+    r2Out.close()
+#####################################################################
 
