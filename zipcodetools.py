@@ -538,7 +538,11 @@ def order_integration_fq(myData):
     myData['IntStats']['r2LTR'] = 0
     myData['IntStats']['LTRmatchFail'] = 0           
     myData['IntStats']['LinkermatchFail'] = 0 
+    myData['IntStats']['zipcodeLeftFail']  = 0
+    myData['IntStats']['zipcodeRightFail'] = 0   
 
+    myData['IntStats']['zipcodeLenPass'] = 0
+    myData['IntStats']['zipcodeLenFail'] = 0
 
 
     r1In = gzip.open(myData['fq1'],'r')
@@ -555,6 +559,9 @@ def order_integration_fq(myData):
              break
         
         myData['IntStats']['totalReads'] += 1
+        
+        if myData['IntStats']['totalReads'] % 50000 == 0:
+            print '\tOn read %i ...' % myData['IntStats']['totalReads']
         
         
         for i in range(4):
@@ -616,7 +623,6 @@ def order_integration_fq(myData):
             continue
 
         
-
         ltTmp = myData['LTRPrimer']
         if LTRmaxMatchOffset < 0:
             abs_offset = abs(LTRmaxMatchOffset)
@@ -651,13 +657,111 @@ def order_integration_fq(myData):
                  
         # at this point, we have LTR and LinkerRecords setup, are ready to look for
         # zipcode extraction
+        # need to search for first myData['leftTarget'] and see if have any matches....
+        
+        maxMatchL = 0
+        maxOffsetL = 0
+        for offset in range(-3,5):
+            numMatches = count_matches(LTRRec[1],myData['leftTarget'],offset)
+            if numMatches > maxMatchL:
+                maxMatchL = numMatches
+                maxOffsetL = offset
+        # see if there are any...
+        if maxMatchL < myData['minLeftMatch']:  # usually not right PCR product
+             myData['IntStats']['zipcodeLeftFail'] += 1
+             continue
+                    
+        # extract the left....
+        ltTmp = myData['leftTarget']
+        if maxOffsetL < 0:
+            abs_offset = abs(maxOffsetL)
+            ltTmp = ltTmp[abs_offset:]
+            maxOffsetL = 0 # chopped off
+                    
+        
+        leftMatch = LTRRec[1][maxOffsetL:maxOffsetL+len(ltTmp)]
+        leftRest = LTRRec[1][maxOffsetL+len(ltTmp):]
+        qualRest = LTRRec[3][maxOffsetL+len(ltTmp):]
+        
+        LTRRec[1] = leftRest
+        LTRRec[3] = qualRest
 
 
+        # now test for right match
+        maxMatchR = 0
+        maxOffsetR = 0
+        for offset in range(15,25):
+            numMatches = count_matches(LTRRec[1],myData['rightTarget'],offset)
+            if numMatches > maxMatchR:
+                maxMatchR = numMatches
+                maxOffsetR = offset
+        
+        if maxMatchR < myData['minRightMatch']:  # usually not right PCR product
+             myData['IntStats']['zipcodeRightFail'] += 1
+             continue
 
-#        break
+        
+        
+        # extract the right and zip....
+        ltTmp = myData['rightTarget']
+        if maxOffsetR < 0:
+            abs_offset = abs(maxOffsetR)
+            ltTmp = ltTmp[abs_offset:]
+            maxOffsetR = 0 # chopped off
+          
+                    
+        
+        zipCode = LTRRec[1][0:maxOffsetR]
+        rightMatch = LTRRec[1][maxOffsetR:maxOffsetR+len(ltTmp)]
+        rightRest = LTRRec[1][maxOffsetR+len(ltTmp):]
+        qualRest = LTRRec[3][maxOffsetR+len(ltTmp):]
+        
+        LTRRec[1] = rightRest
+        LTRRec[3] = qualRest
+        
+        if len(zipCode) >= myData['minZipLen'] and len(zipCode) <= myData['maxZipLen']:
+            myData['IntStats']['zipcodeLenPass'] += 1
+        else:
+            myData['IntStats']['zipcodeLenFail'] += 1
+            continue
+            
+        # if get here, then ready to write out the info
+        LTRRec[0] = LTRRec[0][0] + zipCode + ':' + LTRRec[0][1:]
+        LinkerRec[0] = LinkerRec[0][0] + zipCode + ':' + LinkerRec[0][1:]        
+        
+        r1Out.write('%s\n%s\n%s\n%s\n' % (LTRRec[0],LTRRec[1],LTRRec[2],LTRRec[3]) )
+        r2Out.write('%s\n%s\n%s\n%s\n' % (LinkerRec[0],LinkerRec[1],LinkerRec[2],LinkerRec[3]) )
     r1In.close()
     r2In.close()
     r1Out.close()
     r2Out.close()
 #####################################################################
+def print_integration_extraction_stats(myData):
+    myData['integrationExtractStatsFile'] = myData['outDir'] + 'integration.extraction.stats.txt'
+    outFile = open(myData['integrationExtractStatsFile'],'w')
+    outFile.write('name\t%s\n' % myData['name'])
+    outFile.write('fq1\t%s\n' % myData['fq1'])
+    outFile.write('fq2\t%s\n' % myData['fq2'])
+    outFile.write('LTRPrimer\t%s\n' % (myData['LTRPrimer']))
+    outFile.write('linkerPrimer\t%s\n' % (myData['linkerPrimer']))    
+    outFile.write('minLTRMatch\t%i\n' % myData['minLTRPrimerMatch'] )
+    outFile.write('minLinkerMatch\t%i\n' % myData['minlinkerPrimerMatch'] )
+    outFile.write('zipregion target\t%s\t%s\n' % (myData['leftTarget'],myData['rightTarget']))
+    outFile.write('minLeftMatch\t%i\n' % myData['minLeftMatch'] )
+    outFile.write('minRightMatch\t%i\n' % myData['minRightMatch'] )
+    outFile.write('zipcode length range\t%i\t%i\n' % (myData['minZipLen'],myData['maxZipLen']))
+    
+    outFile.write('\n')
+    statsList = ['totalReads','LTRmatchFail','r1LTR','r2LTR','LinkermatchFail','zipcodeLeftFail','zipcodeRightFail','zipcodeLenFail','zipcodeLenPass']
+    for k in statsList:
+        outFile.write('%s\t%i\n' % (k,myData['IntStats'][k]))
+    
+     
+     
+    outFile.close()
+
+#####################################################################
+
+
+
 

@@ -68,11 +68,14 @@ myData['linkerPrimer'] = myData['linkerPrimer'].upper()
 myData['minLTRPrimerMatch'] = len(myData['LTRPrimer']) - 3
 myData['minlinkerPrimerMatch'] = len(myData['linkerPrimer']) - 3
 
+myData['leftTarget'] = options.leftTarget
+myData['rightTarget'] = options.rightTarget
+
 myData['leftTarget'] = myData['leftTarget'].upper()
 myData['rightTarget'] = myData['rightTarget'].upper()
 
-myData['minLeftMatch'] = len(myData['leftTarget']) - 1
-myData['minRightMatch'] = len(myData['rightTarget']) - 1
+myData['minLeftMatch'] = len(myData['leftTarget']) - 2  # 2 since reads not overlapping..
+myData['minRightMatch'] = len(myData['rightTarget']) - 2 
 myData['minZipLen'] =  20 - 3
 myData['maxZipLen'] =  20 + 3
 
@@ -83,19 +86,7 @@ zipcodetools.setup_output_dir(myData)
 zipcodetools.order_integration_fq(myData)
 
 
-print myData['IntStats']
+zipcodetools.print_integration_extraction_stats(myData)
 
-sys.exit()
-
-
-
-zipcodetools.run_flash(myData)
-zipcodetools.read_flash_stats(myData)
-
-zipcodetools.get_zipcode_noindel(myData)
-zipcodetools.count_extracted_zips(myData)
-zipcodetools.print_extraction_stats(myData)
-
-print 'Stats output to file:',myData['extractStatsFile']
-print 'Set of zipcodes output to',myData['zipTable']
+print 'Stats output to file:',myData['integrationExtractStatsFile']
 
