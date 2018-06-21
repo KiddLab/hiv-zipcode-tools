@@ -8,7 +8,6 @@ from optparse import OptionParser
 USAGE = """
 python extract-zips.py  --fq1 <fq.gz file for read 1>  --fq2 <fq.gz file for read 2>
                         --outbase <base dir for output>   --name <name for sample set>
-                        --target <fasta of zipcode target>
                         --lefttarget <left target to align, default=ACGAAGACAAGATATCCTTGATCTG>
                         --righttarget <right target to align, default=GCCATCGATGTGGATCTACCACACA>
                         
