@@ -531,6 +531,8 @@ def order_integration_fq(myData):
     myData['LTRRead1'] = myData['outDir'] + 'LTRRead1.fq.gz'
     myData['LinkerRead2'] = myData['outDir'] + 'LinkerRead2.fq.gz'
 
+    myData['tmpReadOut'] = myData['outDir'] + 'Read1_fail_zipcode_match.fq.gz'
+
 
     myData['IntStats'] = {}
     myData['IntStats']['totalReads'] = 0
@@ -544,11 +546,18 @@ def order_integration_fq(myData):
     myData['IntStats']['zipcodeLenPass'] = 0
     myData['IntStats']['zipcodeLenFail'] = 0
 
+    myData['IntStats']['matchProvirus'] = 0
+    myData['IntStats']['notMatchProvirus'] = 0
+
+
+    
 
     r1In = gzip.open(myData['fq1'],'r')
     r2In = gzip.open(myData['fq2'],'r')
     r1Out = gzip.open(myData['LTRRead1'],'w')
     r2Out = gzip.open(myData['LinkerRead2'],'w')
+    
+    tmpOut = gzip.open(myData['tmpReadOut'],'w')
     
     print 'Assessing r1 and r2 of integration data...'
     while True:
@@ -669,6 +678,8 @@ def order_integration_fq(myData):
         # see if there are any...
         if maxMatchL < myData['minLeftMatch']:  # usually not right PCR product
              myData['IntStats']['zipcodeLeftFail'] += 1
+             
+             tmpOut.write('%s\n%s\n%s\n%s\n' % (LTRRec[0],LTRRec[1],LTRRec[2],LTRRec[3]))             
              continue
                     
         # extract the left....
@@ -712,6 +723,7 @@ def order_integration_fq(myData):
                     
         
         zipCode = LTRRec[1][0:maxOffsetR]
+        zipCode = revcomp(zipCode)  # to match orientation of PCR products 
         rightMatch = LTRRec[1][maxOffsetR:maxOffsetR+len(ltTmp)]
         rightRest = LTRRec[1][maxOffsetR+len(ltTmp):]
         qualRest = LTRRec[3][maxOffsetR+len(ltTmp):]
@@ -724,6 +736,25 @@ def order_integration_fq(myData):
         else:
             myData['IntStats']['zipcodeLenFail'] += 1
             continue
+
+        # check to see if there is extension into LTR--> provirus
+
+        maxMatchProvirus = 0
+        maxOffsetProvirus = 0
+        for offset in range(-3,5):
+            numMatches = count_matches(LTRRec[1],myData['LTRproviral'],offset)
+            if numMatches > maxMatchProvirus:
+                maxMatchProvirus = numMatches
+                maxOffsetProvirus = offset
+        
+        if maxMatchProvirus >= myData['minLTRproviralMatch']:  # this is extension into provirus
+             myData['IntStats']['matchProvirus'] += 1
+             continue
+        else:
+             myData['IntStats']['notMatchProvirus'] += 1
+    
+
+
             
         # if get here, then ready to write out the info
         LTRRec[0] = LTRRec[0][0] + zipCode + ':' + LTRRec[0][1:]
@@ -735,6 +766,9 @@ def order_integration_fq(myData):
     r2In.close()
     r1Out.close()
     r2Out.close()
+    
+    tmpOut.close()
+    
 #####################################################################
 def print_integration_extraction_stats(myData):
     myData['integrationExtractStatsFile'] = myData['outDir'] + 'integration.extraction.stats.txt'
@@ -750,9 +784,10 @@ def print_integration_extraction_stats(myData):
     outFile.write('minLeftMatch\t%i\n' % myData['minLeftMatch'] )
     outFile.write('minRightMatch\t%i\n' % myData['minRightMatch'] )
     outFile.write('zipcode length range\t%i\t%i\n' % (myData['minZipLen'],myData['maxZipLen']))
-    
+    outFile.write('check for proviral match\t%s\n' % myData['LTRproviral'])
+    outFile.write('min proviral match\t%i\n' % myData['minLTRproviralMatch'] )
     outFile.write('\n')
-    statsList = ['totalReads','LTRmatchFail','r1LTR','r2LTR','LinkermatchFail','zipcodeLeftFail','zipcodeRightFail','zipcodeLenFail','zipcodeLenPass']
+    statsList = ['totalReads','LTRmatchFail','r1LTR','r2LTR','LinkermatchFail','zipcodeLeftFail','zipcodeRightFail','zipcodeLenFail','zipcodeLenPass','matchProvirus','notMatchProvirus']
     for k in statsList:
         outFile.write('%s\t%i\n' % (k,myData['IntStats'][k]))
     

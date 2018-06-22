@@ -13,9 +13,9 @@ python extract-zips.py  --fq1 <fq.gz file for read 1>  --fq2 <fq.gz file for rea
                        
                          --lefttarget <left of zipcode, default=AGATCCAcatcgATggc >
                          --righttarget <right of zipcode, default=cAGATCAAGGATATCTT >
+                         --ltrproviral <LTR to proviral sequence to filter, default=GTCTTCGTTGGGAGTGAATTAGCCCTTCCAGTCCCCCCTTTTCTTTTAAAAAGTGGC >
                                               
                        
-                        
                         
                         
 Will  extract zipcde and info into outbase/name directory
@@ -35,6 +35,7 @@ parser.add_option('--linkerPrimer',dest='linkerPrimer',default='AGGGCTCCGCTTAAGG
 
 parser.add_option('--lefttarget',dest='leftTarget',default='AGATCCAcatcgATggc',help = 'LTR primer')
 parser.add_option('--righttarget',dest='rightTarget',default='cAGATCAAGGATATCTT',help = 'LTR primer')
+parser.add_option('--ltrproviral',dest='LTRproviral',default='GTCTTCGTTGGGAGTGAATTAGCCCTTCCAGTCCCCCCTTTTCTTTTAAAAAGTGGC',help = 'LTR to proviral sequence')
 
 
 
@@ -61,12 +62,22 @@ myData['outBase'] = options.outBase
 myData['name'] = options.name
 myData['LTRPrimer'] = options.LTRPrimer
 myData['linkerPrimer'] = options.linkerPrimer
+myData['LTRproviral'] = options.LTRproviral
+
 
 myData['LTRPrimer'] = myData['LTRPrimer'].upper()
 myData['linkerPrimer'] = myData['linkerPrimer'].upper()
+myData['LTRproviral'] = myData['LTRproviral'].upper()
+
+
+
 
 myData['minLTRPrimerMatch'] = len(myData['LTRPrimer']) - 3
 myData['minlinkerPrimerMatch'] = len(myData['linkerPrimer']) - 3
+
+
+myData['minLTRproviralMatch'] = len(myData['LTRproviral']) - 4
+
 
 myData['leftTarget'] = options.leftTarget
 myData['rightTarget'] = options.rightTarget
@@ -87,6 +98,5 @@ zipcodetools.order_integration_fq(myData)
 
 
 zipcodetools.print_integration_extraction_stats(myData)
-
 print 'Stats output to file:',myData['integrationExtractStatsFile']
 
