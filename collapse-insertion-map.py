@@ -89,7 +89,7 @@ zcList = insData.keys()
 zcList.sort()
 
 outFile = open(ofn,'w')
-nl = ['zipFamily','insChrom','insBP','insStrand','numShearPoints','totReads']
+nl = ['#zipFamily','insChrom','insBP','insStrand','numShearPoints','totReads']
 nl = '\t'.join(nl) + '\n'
 outFile.write(nl)
 
