@@ -5,7 +5,7 @@ from optparse import OptionParser
 
 ###############################################################################
 USAGE = """
-python add-family-to-align-parse.py   --alignparsefam <txt file from add-family-to-align-parse.py>
+python collapse-insertion-map.py   --alignparsefam <txt file from add-family-to-align-parse.py>
 
 Will output updated set to file in same dir.
 
