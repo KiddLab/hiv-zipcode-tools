@@ -32,7 +32,7 @@ print 'writing output to',of
 outFile = open(of,'w')
 
 
-nl = ['zipCode','readName','insChrom','insBP','insStrand','insMapQ','shearChrom','shearBP','insStrand','shearMapQ']
+nl = ['#zipCode','readName','insChrom','insBP','insStrand','insMapQ','shearChrom','shearBP','insStrand','shearMapQ']
 nl = '\t'.join(nl) + '\n'
 outFile.write(nl)
 
