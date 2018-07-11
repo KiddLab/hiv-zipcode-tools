@@ -111,6 +111,7 @@ for read in bamFile:
             r2Dir = '.'
             shearPoint = 0
             mapQR2 = -1
+            shearOrient = '.'
         else:
             r2Chrom = r2.reference_name
             refPos = r2.get_reference_positions()
