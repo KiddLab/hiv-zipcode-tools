@@ -5,9 +5,20 @@ import sys
 import os
 import gzip
 import subprocess
-import nwalign as nw
+#import nwalign as nw
+from align import aligner
 
+# setup matrix for using alignment...
+MY_MATRIX = {}
 
+MY_MATRIX['A'] = {'A':1, 'C':-1,'T':-1,'G':-1,'N':-1 }
+MY_MATRIX['C'] = {'A':-1, 'C':1,'T':-1,'G':-1,'N':-1 }
+MY_MATRIX['T'] = {'A':-1, 'C':-1,'T':1,'G':-1,'N':-1 }
+MY_MATRIX['G'] = {'A':-1, 'C':-1,'T':-1,'G':1,'N':-1 }
+MY_MATRIX['N'] = {'A':-1, 'C':-1,'T':-1,'G':-1,'N':1 }
+
+        
+        
 #####################################################################
 # check to see if program is in PATH
 # copied from https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
@@ -454,12 +465,20 @@ def read_ziptable_to_list(myData):  # read in table into list for clustering
 
 #####################################################################
 def score_num_missmatches(seq1,seq2):
-    aln = nw.global_align(seq1,seq2)
+    aln = aligner(seq1,seq2, method= 'global',gap_open=-1,gap_extend=-1,matrix=MY_MATRIX)
     numMisMatch = 0
-    for i in range(len(aln[0])):
-       if aln[0][i] != aln[1][i]:
+    for i in range(len(aln[0].seq1)):
+       if aln[0].seq1[i] != aln[0].seq2[i]:
            numMisMatch += 1
     return numMisMatch
+    
+    # old code -- switched because nwalign has a memory leak... 
+#    aln = nw.global_align(seq1,seq2)
+#    numMisMatch = 0
+#    for i in range(len(aln[0])):
+#       if aln[0][i] != aln[1][i]:
+#           numMisMatch += 1
+#    return numMisMatch
 #####################################################################
 def select_clusters(myData):
     inFile = open(myData['clusterTable'],'r')
