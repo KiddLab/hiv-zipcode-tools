@@ -59,6 +59,7 @@ inFile = open(options.alignParse,'r')
 print 'Matching to ',ofn
 outFile = open(ofn,'w')
 outFile.write('#%s\n' % options.zipFamilies)
+numLine = 0
 for line in inFile:
     if line[0] == '#':
         line = line.rstrip()
@@ -76,11 +77,17 @@ for line in inFile:
             numFound += 1
             zipFam = zipFamList[i]
             did = True
+            break
+            
     if did is False:
         numNotFound += 1
         zipFam = 'NotAssigned'
     nl = zipFam + '\t' + line + '\n'
     outFile.write(nl)
+
+    numLine += 1
+    if numLine % 100 == 0:
+        print '... did',numLine,zipFam
     
     
 outFile.close()
