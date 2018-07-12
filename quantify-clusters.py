@@ -72,7 +72,7 @@ for line in inFile:
     totPerDepth += fracDepth
     did = False
     for i in range(len(familySet)):
-        numMisMatches = zipcodetools.score_num_missmatches(familySet[i][1],zipcode)
+        numMisMatches = zipcodetools.score_num_missmatches(familySet[i][1],zipcode,lowmem=False)
         if numMisMatches <= options.editDistance:
             familySet[i][2] += fracDepth
             did = True
@@ -97,9 +97,6 @@ outFile.write('%i\tNotAssigned\t%.8f\n' % (lastN,noAssignment))
 outFile.close()
 
 
-
 print 'Total depth encountered: %.8f' % totPerDepth
 print 'Not assigned: %.8f' % noAssignment
-
-
 
