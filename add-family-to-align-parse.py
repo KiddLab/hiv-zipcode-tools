@@ -38,6 +38,7 @@ print 'reading in zip families from',options.zipFamilies
 
 inFile = open(options.zipFamilies,'r')
 zipFamList = []
+zipFamDict = {}
 for line in inFile:
     if line[0] == '#':
         continue
@@ -47,9 +48,61 @@ for line in inFile:
     if zc == 'NotAssigned':
         continue
     zipFamList.append(zc)
+    zipFamDict[zc] = 1
 inFile.close()
 
 print 'Read in %i zip families' % len(zipFamList)
+print 'And the matching dict is %i long' % len(zipFamDict)  # to speed up lookups...
+
+# add in two pass approach to make things go even faster.....
+
+observedZipSet = {}
+inFile = open(options.alignParse,'r')
+for line in inFile:
+    if line[0] == '#':
+        continue
+    line = line.rstrip()
+    zc = line.split()[0]
+    observedZipSet[zc] = ''
+inFile.close()
+print 'Read in %i unique zips to match' % len(observedZipSet)
+
+print 'Doing the preassignment...'
+# now, go through each and assign zip to it
+assigned = 0
+notassigned = 0
+n = 0
+for zc in observedZipSet:
+    n += 1
+    if n % 50 == 0:
+        print '... on zip',n
+    did = False
+    if zc in zipFamDict:
+        did = True
+        assigned += 1
+        zipFam = zc
+        observedZipSet[zc] = zipFam        
+        continue
+        
+    
+    for i in range(len(zipFamList)):
+        numMisMatches = zipcodetools.score_num_missmatches(zipFamList[i],zc)
+        if numMisMatches <= options.editDistance:
+            assigned += 1
+            zipFam = zipFamList[i]
+            did = True
+            observedZipSet[zc] = zipFam            
+            break            
+    if did is False:
+        notassigned += 1
+        zipFam = 'NotAssigned'
+        observedZipSet[zc] = zipFam            
+
+print 'Assignment done:'
+print 'Has assignment: %i  No assignment: %i' % (assigned,notassigned)        
+
+
+
 
 numFound = 0
 numNotFound = 0
@@ -59,7 +112,6 @@ inFile = open(options.alignParse,'r')
 print 'Matching to ',ofn
 outFile = open(ofn,'w')
 outFile.write('#%s\n' % options.zipFamilies)
-numLine = 0
 for line in inFile:
     if line[0] == '#':
         line = line.rstrip()
@@ -69,25 +121,15 @@ for line in inFile:
         continue
     line = line.rstrip()
     zc = line.split()[0]
-    
-    did = False
-    for i in range(len(zipFamList)):
-        numMisMatches = zipcodetools.score_num_missmatches(zipFamList[i],zc)
-        if numMisMatches <= options.editDistance:
-            numFound += 1
-            zipFam = zipFamList[i]
-            did = True
-            break
-            
-    if did is False:
+    zipFam = observedZipSet[zc]
+    if zipFam == 'NotAssigned':
         numNotFound += 1
-        zipFam = 'NotAssigned'
+    else:
+        numFound += 1
+    
     nl = zipFam + '\t' + line + '\n'
     outFile.write(nl)
 
-    numLine += 1
-    if numLine % 100 == 0:
-        print '... did',numLine,zipFam
     
     
 outFile.close()
