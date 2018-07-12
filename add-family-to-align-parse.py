@@ -86,7 +86,9 @@ for zc in observedZipSet:
         
     
     for i in range(len(zipFamList)):
-        numMisMatches = zipcodetools.score_num_missmatches(zipFamList[i],zc)
+        # use lowmem=False to speed things up, since have reduced number of comparisons
+        numMisMatches = zipcodetools.score_num_missmatches(zipFamList[i],zc,lowmem=False)
+
         if numMisMatches <= options.editDistance:
             assigned += 1
             zipFam = zipFamList[i]

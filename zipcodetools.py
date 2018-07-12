@@ -5,6 +5,8 @@ import sys
 import os
 import gzip
 import subprocess
+import nwalign as nw
+
 
 # install from https://github.com/brentp/align
 from align import aligner
@@ -465,16 +467,22 @@ def read_ziptable_to_list(myData):  # read in table into list for clustering
     myData['zipList'].sort(key=lambda k: k[1],reverse=True)
 
 #####################################################################
-def score_num_missmatches(s1,s2):
-    aln = aligner(s1,s2, method= 'global',gap_open=-1,gap_extend=-1,matrix=MY_MATRIX)
-    
-    seq1 = aln[0].seq1
-    seq2 = aln[0].seq2
-    maxScore = min(len(aln[0].seq1),len(aln[0].seq2)) * 1.0
-    scoreDelta = maxScore - aln[0].score
-    calcMissMatch = int(scoreDelta/2.0)
-
-    return calcMissMatch
+def score_num_missmatches(s1,s2,lowmem=True):
+    if lowmem is True:
+        aln = aligner(s1,s2, method= 'global',gap_open=-1,gap_extend=-1,matrix=MY_MATRIX)    
+        seq1 = aln[0].seq1
+        seq2 = aln[0].seq2
+        maxScore = min(len(aln[0].seq1),len(aln[0].seq2)) * 1.0
+        scoreDelta = maxScore - aln[0].score
+        calcMissMatch = int(scoreDelta/2.0)
+        return calcMissMatch
+    else:
+         aln = nw.global_align(s1,s2)
+         numMissMatch = 0
+         for i in range(len(aln[0])):
+             if aln[0][i] != aln[1][i]:
+                 numMissMatch += 1
+         return numMissMatch        
 #####################################################################
 def select_clusters(myData):
     inFile = open(myData['clusterTable'],'r')
