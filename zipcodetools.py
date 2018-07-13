@@ -5,7 +5,8 @@ import sys
 import os
 import gzip
 import subprocess
-import pairwisealign  # custom aligner for Needleman–Wunsch for small sequences
+import pairwisealign
+# uses custom aligner for Needleman-Wunsch for small sequences
                 
 #####################################################################
 # check to see if program is in PATH
