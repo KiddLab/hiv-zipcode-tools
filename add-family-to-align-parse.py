@@ -73,9 +73,6 @@ assigned = 0
 notassigned = 0
 n = 0
 for zc in observedZipSet:
-    n += 1
-    if n % 50 == 0:
-        print '... on zip',n
     did = False
     if zc in zipFamDict:
         did = True
@@ -87,7 +84,7 @@ for zc in observedZipSet:
     
     for i in range(len(zipFamList)):
         # use lowmem=False to speed things up, since have reduced number of comparisons
-        numMisMatches = zipcodetools.score_num_missmatches(zipFamList[i],zc,lowmem=False)
+        numMisMatches = zipcodetools.score_num_missmatches(zipFamList[i],zc)
 
         if numMisMatches <= options.editDistance:
             assigned += 1
@@ -132,8 +129,6 @@ for line in inFile:
     nl = zipFam + '\t' + line + '\n'
     outFile.write(nl)
 
-    
-    
 outFile.close()
 
 print 'Num Matched in set %i' % numFound

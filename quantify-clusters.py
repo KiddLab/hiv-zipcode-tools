@@ -72,7 +72,7 @@ for line in inFile:
     totPerDepth += fracDepth
     did = False
     for i in range(len(familySet)):
-        numMisMatches = zipcodetools.score_num_missmatches(familySet[i][1],zipcode,lowmem=False)
+        numMisMatches = zipcodetools.score_num_missmatches(familySet[i][1],zipcode)
         if numMisMatches <= options.editDistance:
             familySet[i][2] += fracDepth
             did = True
