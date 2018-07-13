@@ -2,6 +2,11 @@
 # has some things hard coded in to use...
 # attempt at cython usage...
 
+# inspired by nwalign https://bitbucket.org/brentp/biostuff/src
+# uses typed memory views
+# function returns alignmnet (as asci char, used char(x) to change) and number of mismatches
+
+
 cimport cython
 import numpy as np
 cimport numpy as np
