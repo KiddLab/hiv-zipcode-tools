@@ -5,10 +5,7 @@ import sys
 import os
 import gzip
 import subprocess
-# note, use nwalign made with newer version of Cython
-# to fix memory view link 
-# see: https://github.com/cython/cython/pull/1829
-import nwalign as nw
+import pairwisealign  # custom aligner for Needleman–Wunsch for small sequences
                 
 #####################################################################
 # check to see if program is in PATH
@@ -456,12 +453,8 @@ def read_ziptable_to_list(myData):  # read in table into list for clustering
 
 #####################################################################
 def score_num_missmatches(s1,s2):
-     aln = nw.global_align(s1,s2)
-     numMissMatch = 0
-     for i in range(len(aln[0])):
-         if aln[0][i] != aln[1][i]:
-             numMissMatch += 1
-     return numMissMatch        
+     aln = pairwisealign.pw_align(s1,s2)
+     return aln[2]
 #####################################################################
 def select_clusters(myData):
     inFile = open(myData['clusterTable'],'r')
