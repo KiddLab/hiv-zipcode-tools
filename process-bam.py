@@ -32,7 +32,7 @@ print 'writing output to',of
 outFile = open(of,'w')
 
 
-nl = ['#zipCode','readName','insChrom','insBP','insStrand','insMapQ','shearChrom','shearBP','insStrand','shearMapQ']
+nl = ['#zipCode','readName','insChrom','insBP','insStrand','insMapQ','shearChrom','shearBP','ShearReadOrient','shearMapQ']
 nl = '\t'.join(nl) + '\n'
 outFile.write(nl)
 
@@ -96,7 +96,7 @@ for read in bamFile:
             r1End = refPos[-1] + 1 # will work in 1 based... 
             mapQ = r1.mapping_quality
             if r1.is_reverse is True:
-                r1Dir = '-'  # reverse strand, so in positive dir   
+                r1Dir = '-'  # reverse strand, so in positive dir   # this is the dir of HIV insertion relative to genome
                 insPoint = r1End
                 insOrient = 'fwd'             
             else:
@@ -119,7 +119,7 @@ for read in bamFile:
             r2End = refPos[-1] + 1 # will work in 1 based... 
             mapQR2 = r1.mapping_quality
             
-            if r2.is_reverse is True:
+            if r2.is_reverse is True:  # this is true shear orientation
                 r2Dir = '-'  # reverse strand, so in positive dir
                 shearOrient = 'rev'
                 shearPoint = r2End   
