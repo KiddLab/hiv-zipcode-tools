@@ -1,3 +1,4 @@
+pairwisealign.c
 *.so
 build/
 *.pyc
